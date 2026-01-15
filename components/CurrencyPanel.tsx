@@ -1,50 +1,18 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import Panel from "./Panel";
 
-interface CurrencyData {
-  rates: {
-    official: number | null;
-    market: number | null;
-    source: string;
-  };
-  links: {
-    bonbast: string;
-    tgju: string;
-  };
-}
-
 export default function CurrencyPanel() {
-  const [data, setData] = useState<CurrencyData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await fetch("/api/currency");
-      const json = await res.json();
-      setData(json);
-    } catch (e) {
-      console.error("Currency fetch error:", e);
-    } finally {
-      setLoading(false);
-    }
+  const handleRefresh = useCallback(() => {
+    setRefreshKey((k) => k + 1);
   }, []);
 
-  useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 10 * 60 * 1000); // Every 10 min
-    return () => clearInterval(interval);
-  }, [fetchData]);
-
-  const formatNumber = (n: number | null) => {
-    if (n === null) return "—";
-    return n.toLocaleString();
-  };
-
+  // Bonbast widget/embed approach - they have a chart we can reference
   return (
-    <Panel title="Iranian Rial (IRR/USD)" icon="💱" onRefresh={fetchData} className="h-full">
+    <Panel title="Iranian Rial (IRR/USD)" icon="💱" onRefresh={handleRefresh} className="h-full">
       <div className="h-full flex flex-col overflow-hidden">
         <div className="flex gap-2 p-2 bg-gray-800/50 border-b border-gray-700 shrink-0">
           <a
@@ -63,40 +31,55 @@ export default function CurrencyPanel() {
           >
             TGJU ↗
           </a>
+          <a
+            href="https://tradingeconomics.com/iran/currency"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs px-2 py-1 bg-gray-600 hover:bg-gray-700 rounded text-white"
+          >
+            TradingEcon ↗
+          </a>
         </div>
 
         <div className="flex-1 p-3 overflow-y-auto">
-          {loading && !data ? (
-            <div className="flex items-center justify-center h-20">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+          <div className="p-3 bg-red-900/30 border border-red-700/50 rounded mb-3">
+            <div className="text-xs text-red-400 uppercase mb-1">⚠️ Free Market Rate</div>
+            <div className="text-xl font-bold text-white">
+              ~1,460,000 <span className="text-sm text-gray-400">IRR/USD</span>
             </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="p-3 bg-gray-800 rounded">
-                <div className="text-xs text-gray-400 uppercase mb-1">Official Rate</div>
-                <div className="text-2xl font-bold text-white">
-                  {formatNumber(data?.rates?.official ?? null)} <span className="text-sm text-gray-400">IRR</span>
-                </div>
-                <div className="text-xs text-gray-500">per 1 USD</div>
-              </div>
-
-              <div className="p-3 bg-gray-800 rounded">
-                <div className="text-xs text-gray-400 uppercase mb-1">Market Rate (Est.)</div>
-                <div className="text-2xl font-bold text-yellow-400">
-                  {formatNumber(data?.rates?.market ?? null)} <span className="text-sm text-gray-400">IRR</span>
-                </div>
-                <div className="text-xs text-gray-500">~15% premium (unofficial)</div>
-              </div>
-
-              <div className="p-2 bg-yellow-900/30 border border-yellow-700/50 rounded text-xs text-yellow-400">
-                ⚠️ Black market rate fluctuates. Check Bonbast for real-time street rates.
-              </div>
-
-              <div className="text-xs text-gray-500">
-                <strong>Why it matters:</strong> Large gaps between official/market rates indicate economic stress. Rapid devaluation often precedes unrest.
-              </div>
+            <div className="text-xs text-gray-400 mt-1">
+              Check Bonbast for real-time rate (updates frequently)
             </div>
-          )}
+          </div>
+
+          <div className="p-3 bg-gray-800 rounded mb-3">
+            <div className="text-xs text-gray-500 uppercase mb-1">Official Rate (Meaningless)</div>
+            <div className="text-lg text-gray-500">
+              ~42,000 <span className="text-sm">IRR/USD</span>
+            </div>
+            <div className="text-xs text-gray-600">
+              Government rate - not accessible to ordinary Iranians
+            </div>
+          </div>
+
+          <div className="space-y-2 text-xs">
+            <div className="p-2 bg-yellow-900/30 border border-yellow-700/50 rounded text-yellow-400">
+              <strong>Why it matters:</strong> The rial has lost 99.99% of its value since 1979. Rapid drops signal crisis/instability.
+            </div>
+
+            <div className="p-2 bg-gray-800 rounded text-gray-400">
+              <strong>Key indicators:</strong>
+              <ul className="mt-1 space-y-0.5">
+                <li>• Sharp drops → sanctions pressure or crisis</li>
+                <li>• Rate spikes → capital flight fears</li>
+                <li>• Gap widening → economic stress</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-2 bg-gray-800/50 text-xs text-gray-500 border-t border-gray-700">
+          Bonbast tracks street exchange rates in real-time
         </div>
       </div>
     </Panel>
