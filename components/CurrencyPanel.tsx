@@ -75,7 +75,7 @@ export default function CurrencyPanel() {
               <div className="p-3 bg-gray-800 rounded">
                 <div className="text-xs text-gray-400 uppercase mb-1">Official Rate</div>
                 <div className="text-2xl font-bold text-white">
-                  {formatNumber(data?.rates.official)} <span className="text-sm text-gray-400">IRR</span>
+                  {formatNumber(data?.rates?.official ?? null)} <span className="text-sm text-gray-400">IRR</span>
                 </div>
                 <div className="text-xs text-gray-500">per 1 USD</div>
               </div>
@@ -83,7 +83,7 @@ export default function CurrencyPanel() {
               <div className="p-3 bg-gray-800 rounded">
                 <div className="text-xs text-gray-400 uppercase mb-1">Market Rate (Est.)</div>
                 <div className="text-2xl font-bold text-yellow-400">
-                  {formatNumber(data?.rates.market)} <span className="text-sm text-gray-400">IRR</span>
+                  {formatNumber(data?.rates?.market ?? null)} <span className="text-sm text-gray-400">IRR</span>
                 </div>
                 <div className="text-xs text-gray-500">~15% premium (unofficial)</div>
               </div>
