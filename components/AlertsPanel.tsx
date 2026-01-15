@@ -47,12 +47,12 @@ export default function AlertsPanel() {
       <div className="h-full flex flex-col overflow-hidden">
         <div className="flex flex-wrap gap-2 p-2 bg-gray-800/50 border-b border-gray-700 shrink-0">
           <a
-            href="https://www.oref.org.il/en"
+            href="https://www.tzevaadom.co.il/en/"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs px-2 py-1 bg-red-600 hover:bg-red-700 rounded text-white"
           >
-            Israel HFC ↗
+            Red Alert ↗
           </a>
           <a
             href="https://iran.liveuamap.com/"
@@ -78,27 +78,27 @@ export default function AlertsPanel() {
             <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">Live Alert Sources</h3>
             <div className="space-y-2">
               <a
-                href="https://www.oref.org.il/en"
+                href="https://www.tzevaadom.co.il/en/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 p-2 bg-gray-800 rounded hover:bg-gray-700"
               >
                 <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
                 <div>
-                  <div className="text-sm text-white">Pikud HaOref</div>
-                  <div className="text-xs text-gray-400">Israel Home Front Command alerts</div>
+                  <div className="text-sm text-white">Red Alert Israel</div>
+                  <div className="text-xs text-gray-400">Real-time rocket/missile alerts</div>
                 </div>
               </a>
               <a
-                href="https://www.tzevaadom.co.il/en/"
+                href="https://alerts.me/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 p-2 bg-gray-800 rounded hover:bg-gray-700"
               >
                 <span className="w-2 h-2 rounded-full bg-red-500"></span>
                 <div>
-                  <div className="text-sm text-white">Tzeva Adom</div>
-                  <div className="text-xs text-gray-400">Real-time rocket alerts</div>
+                  <div className="text-sm text-white">Alerts.me</div>
+                  <div className="text-xs text-gray-400">Crowd-sourced Israel alerts</div>
                 </div>
               </a>
               <a
