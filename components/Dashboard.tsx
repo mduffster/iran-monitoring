@@ -30,10 +30,10 @@ export default function Dashboard() {
 
       {/* Row 2: Maps & Tracking */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="h-[350px]">
+        <div className="h-[500px]">
           <ShipTracker />
         </div>
-        <div className="h-[350px]">
+        <div className="h-[500px]">
           <FiresPanel />
         </div>
       </div>

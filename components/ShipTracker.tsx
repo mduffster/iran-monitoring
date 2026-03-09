@@ -12,14 +12,31 @@ interface MaritimeIncident {
   severity: "info" | "warning" | "critical";
 }
 
+interface CarrierMention {
+  name: string;
+  action: string;
+  headline: string;
+}
+
 interface MaritimeData {
   incidents: MaritimeIncident[];
   status: {
     strait: "normal" | "elevated" | "disrupted";
+    severityScore: number;
     criticalCount: number;
     warningCount: number;
     totalIncidents: number;
     lastCheck: string;
+  };
+  oilPrices: {
+    brent: number | null;
+    wti: number | null;
+    source: string | null;
+  };
+  carriers: CarrierMention[];
+  insurance: {
+    mentioned: boolean;
+    headlines: string[];
   };
   feedsOnline: number;
   feedsTotal: number;
@@ -28,25 +45,22 @@ interface MaritimeData {
 
 const STATUS_CONFIG = {
   normal: {
-    label: "OPEN / NORMAL",
+    label: "OPEN",
     color: "text-green-400",
     bg: "bg-green-900/30 border-green-700/50",
     dot: "bg-green-500",
-    description: "No significant disruptions reported",
   },
   elevated: {
-    label: "ELEVATED RISK",
+    label: "ELEVATED",
     color: "text-yellow-400",
     bg: "bg-yellow-900/30 border-yellow-700/50",
     dot: "bg-yellow-500",
-    description: "Maritime warnings or incidents reported",
   },
   disrupted: {
     label: "DISRUPTED",
     color: "text-red-400",
     bg: "bg-red-900/30 border-red-700/50",
     dot: "bg-red-500",
-    description: "Critical incidents affecting transit",
   },
 };
 
@@ -55,6 +69,13 @@ const SEVERITY_STYLE = {
   warning: "bg-yellow-600 text-white",
   info: "bg-gray-600 text-gray-200",
 };
+
+function severityColor(score: number): string {
+  if (score >= 8) return "text-red-400";
+  if (score >= 5) return "text-yellow-400";
+  if (score >= 3) return "text-orange-400";
+  return "text-green-400";
+}
 
 export default function ShipTracker() {
   const [data, setData] = useState<MaritimeData | null>(null);
@@ -79,7 +100,7 @@ export default function ShipTracker() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 3 * 60 * 1000); // refresh every 3min
+    const interval = setInterval(fetchData, 3 * 60 * 1000);
     return () => clearInterval(interval);
   }, [fetchData]);
 
@@ -101,7 +122,7 @@ export default function ShipTracker() {
   return (
     <Panel title="Strait of Hormuz" icon="⚓" onRefresh={fetchData} className="h-full">
       <div className="h-full flex flex-col overflow-hidden">
-        {/* Top bar with external links */}
+        {/* Top bar */}
         <div className="p-2 bg-gray-800/50 border-b border-gray-700 shrink-0">
           <div className="flex flex-wrap items-center gap-2">
             <a
@@ -121,20 +142,20 @@ export default function ShipTracker() {
               VesselFinder ↗
             </a>
             <a
+              href="https://www.hormuztracker.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs px-2 py-1 bg-orange-600 hover:bg-orange-700 rounded text-white transition-colors"
+            >
+              HormuzTracker ↗
+            </a>
+            <a
               href="https://www.ukmto.org/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-white transition-colors"
             >
               UKMTO ↗
-            </a>
-            <a
-              href="https://gcaptain.com/tag/strait-of-hormuz/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs px-2 py-1 bg-gray-600 hover:bg-gray-700 rounded text-white transition-colors"
-            >
-              gCaptain ↗
             </a>
             {data && (
               <span className="ml-auto text-xs text-gray-500">
@@ -157,54 +178,131 @@ export default function ShipTracker() {
             </div>
           ) : (
             <>
-              {/* Strait Status Card */}
-              <div className={`p-3 rounded border ${cfg.bg}`}>
-                <div className="flex items-center justify-between mb-1">
+              {/* Status + Severity Row */}
+              <div className="grid grid-cols-2 gap-2">
+                <div className={`p-3 rounded border ${cfg.bg}`}>
+                  <div className="text-[10px] text-gray-500 uppercase mb-1">Strait Status</div>
                   <div className="flex items-center gap-2">
                     <span className={`w-2.5 h-2.5 rounded-full ${cfg.dot} ${status?.strait !== "normal" ? "animate-pulse" : ""}`} />
-                    <span className={`text-sm font-bold ${cfg.color}`}>
+                    <span className={`text-lg font-bold ${cfg.color}`}>
                       {cfg.label}
                     </span>
                   </div>
-                  <span className="text-xs text-gray-500">
-                    Strait of Hormuz
-                  </span>
                 </div>
-                <div className="text-xs text-gray-400">{cfg.description}</div>
+                <div className="bg-gray-800 rounded p-3 border border-gray-700">
+                  <div className="text-[10px] text-gray-500 uppercase mb-1">Crisis Severity</div>
+                  <div className="flex items-baseline gap-1">
+                    <span className={`text-lg font-bold ${severityColor(status?.severityScore ?? 0)}`}>
+                      {status?.severityScore ?? "—"}
+                    </span>
+                    <span className="text-xs text-gray-500">/10</span>
+                  </div>
+                </div>
               </div>
 
-              {/* Stats Row */}
+              {/* Key Metrics Row */}
               <div className="grid grid-cols-3 gap-2">
-                <div className="bg-gray-800 rounded p-2 text-center">
+                <div className="bg-gray-800 rounded p-2 text-center border border-gray-700">
                   <div className="text-lg font-bold text-white">
                     {status?.totalIncidents ?? "—"}
                   </div>
-                  <div className="text-xs text-gray-400">24h Reports</div>
+                  <div className="text-[10px] text-gray-400">24h Reports</div>
                 </div>
-                <div className="bg-gray-800 rounded p-2 text-center">
+                <div className="bg-gray-800 rounded p-2 text-center border border-gray-700">
                   <div className={`text-lg font-bold ${(status?.criticalCount ?? 0) > 0 ? "text-red-400" : "text-white"}`}>
                     {status?.criticalCount ?? "—"}
                   </div>
-                  <div className="text-xs text-gray-400">Critical</div>
+                  <div className="text-[10px] text-gray-400">Critical</div>
                 </div>
-                <div className="bg-gray-800 rounded p-2 text-center">
+                <div className="bg-gray-800 rounded p-2 text-center border border-gray-700">
                   <div className={`text-lg font-bold ${(status?.warningCount ?? 0) > 0 ? "text-yellow-400" : "text-white"}`}>
                     {status?.warningCount ?? "—"}
                   </div>
-                  <div className="text-xs text-gray-400">Warnings</div>
+                  <div className="text-[10px] text-gray-400">Warnings</div>
                 </div>
               </div>
 
-              {/* Chokepoint Context */}
-              <div className="bg-gray-800 rounded p-2">
-                <div className="text-xs text-gray-400 mb-1">Chokepoint Profile</div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              {/* Oil Prices (extracted from news) */}
+              {data?.oilPrices && (data.oilPrices.brent || data.oilPrices.wti) && (
+                <div className="bg-gray-800 rounded p-2 border border-gray-700">
+                  <div className="text-[10px] text-gray-500 uppercase mb-1.5">Oil Prices (from reports)</div>
+                  <div className="flex items-center gap-4">
+                    {data.oilPrices.brent && (
+                      <div>
+                        <span className="text-xs text-gray-400">Brent </span>
+                        <span className="text-sm font-bold text-white">
+                          ${data.oilPrices.brent.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    {data.oilPrices.wti && (
+                      <div>
+                        <span className="text-xs text-gray-400">WTI </span>
+                        <span className="text-sm font-bold text-white">
+                          ${data.oilPrices.wti.toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    {data.oilPrices.source && (
+                      <span className="text-[10px] text-gray-600 ml-auto">
+                        via {data.oilPrices.source}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Insurance Signals */}
+              {data?.insurance.mentioned && (
+                <div className="bg-yellow-900/20 rounded p-2 border border-yellow-700/40">
+                  <div className="text-[10px] text-yellow-500 uppercase mb-1">Insurance / War Risk</div>
+                  <div className="space-y-1">
+                    {data.insurance.headlines.map((h, i) => (
+                      <div key={i} className="text-xs text-gray-300 line-clamp-1">
+                        {h}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Carrier Disruptions */}
+              {data && data.carriers.length > 0 && (
+                <div className="bg-gray-800 rounded p-2 border border-gray-700">
+                  <div className="text-[10px] text-gray-500 uppercase mb-1.5">Carrier Disruptions</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {data.carriers.map((c, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-1.5 text-xs bg-gray-700/50 rounded px-2 py-1"
+                        title={c.headline}
+                      >
+                        <span className="text-white font-medium">{c.name}</span>
+                        <span className={`text-[10px] px-1 py-0.5 rounded ${
+                          ["suspend", "halt", "cancel"].includes(c.action)
+                            ? "bg-red-600/50 text-red-300"
+                            : c.action === "surcharge"
+                            ? "bg-yellow-600/50 text-yellow-300"
+                            : "bg-gray-600/50 text-gray-400"
+                        }`}>
+                          {c.action}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Chokepoint Profile */}
+              <div className="bg-gray-800 rounded p-2 border border-gray-700">
+                <div className="text-[10px] text-gray-500 uppercase mb-1">Chokepoint Profile</div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs">
                   <div className="text-gray-500">Width:</div>
                   <div className="text-gray-300">21 nm (narrowest)</div>
                   <div className="text-gray-500">Shipping lanes:</div>
-                  <div className="text-gray-300">2 × 2-mile lanes</div>
+                  <div className="text-gray-300">2 x 2-mile lanes</div>
                   <div className="text-gray-500">Daily oil transit:</div>
-                  <div className="text-gray-300">~21M barrels/day</div>
+                  <div className="text-gray-300">~21M bbl/day</div>
                   <div className="text-gray-500">Global oil share:</div>
                   <div className="text-gray-300">~21% of consumption</div>
                   <div className="text-gray-500">LNG transit:</div>
@@ -216,9 +314,9 @@ export default function ShipTracker() {
               {data && data.incidents.length > 0 && (
                 <div>
                   <h3 className="text-xs font-semibold text-gray-400 uppercase mb-2">
-                    Maritime Intelligence Feed
+                    Intelligence Feed
                   </h3>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     {data.incidents.slice(0, 12).map((incident, i) => (
                       <a
                         key={i}
@@ -227,7 +325,7 @@ export default function ShipTracker() {
                         rel="noopener noreferrer"
                         className="block p-2 bg-gray-800 rounded hover:bg-gray-700 transition-colors"
                       >
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-0.5">
                           <span
                             className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${SEVERITY_STYLE[incident.severity]}`}
                           >
@@ -243,11 +341,6 @@ export default function ShipTracker() {
                         <div className="text-sm text-white line-clamp-2">
                           {incident.title}
                         </div>
-                        {incident.description && (
-                          <div className="text-xs text-gray-500 line-clamp-1 mt-0.5">
-                            {incident.description}
-                          </div>
-                        )}
                       </a>
                     ))}
                   </div>
